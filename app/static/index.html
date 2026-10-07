@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geospatial Measurement Dashboard</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #38bdf8;
+      --primary-hover: #0ea5e9;
+      --accent: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --radius: 10px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--card-border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 1000;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-badge {
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
+      color: white;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    .brand h1 {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .brand span {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .nav-links a {
+      color: var(--primary);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      margin-left: 16px;
+      padding: 6px 12px;
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+
+    .nav-links a:hover {
+      background: var(--card-border);
+      color: #fff;
+    }
+
+    .main-container {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 65px);
+      overflow: hidden;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 440px;
+      background: var(--card-bg);
+      border-right: 1px solid var(--card-border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      z-index: 900;
+    }
+
+    .sidebar-section {
+      padding: 20px;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .sidebar-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    /* Upload Box */
+    .drop-zone {
+      border: 2px dashed var(--card-border);
+      border-radius: var(--radius);
+      padding: 24px 16px;
+      text-align: center;
+      background: rgba(15, 23, 42, 0.5);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--primary);
+      background: rgba(56, 189, 248, 0.05);
+    }
+
+    .drop-zone svg {
+      width: 40px;
+      height: 40px;
+      fill: var(--primary);
+      margin-bottom: 8px;
+    }
+
+    .drop-zone p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .drop-zone strong {
+      color: var(--text);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--primary);
+      color: #0f172a;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 10px;
+      width: 100%;
+    }
+
+    .btn:hover { background: var(--primary-hover); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .sample-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--primary);
+      border: 1px solid var(--card-border);
+      font-size: 12px;
+      padding: 6px 10px;
+      flex: 1;
+    }
+
+    .btn-outline:hover {
+      background: var(--card-border);
+      color: #fff;
+    }
+
+    /* Metrics Cards */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .metric-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 12px;
+    }
+
+    .metric-card .label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .metric-card .value {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      margin-top: 4px;
+    }
+
+    .metric-card .sub {
+      font-size: 11px;
+      color: var(--accent);
+      margin-top: 2px;
+    }
+
+    /* Feature List */
+    .feature-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .feature-item {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .feature-item:hover {
+      border-color: var(--primary);
+      background: rgba(56, 189, 248, 0.05);
+    }
+
+    .feature-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .feature-id {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .feature-type {
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      background: #334155;
+    }
+
+    .feature-type.polygon { background: rgba(56, 189, 248, 0.2); color: var(--primary); }
+    .feature-type.linestring { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+    .feature-type.point { background: rgba(16, 185, 129, 0.2); color: var(--accent); }
+
+    .feature-measurements {
+      font-size: 12px;
+      color: var(--text);
+      margin-top: 4px;
+    }
+
+    /* Map container */
+    #map {
+      flex: 1;
+      height: 100%;
+      background: #111827;
+    }
+
+    /* Leaflet popup styling */
+    .leaflet-popup-content-wrapper {
+      background: var(--card-bg);
+      color: var(--text);
+      border-radius: var(--radius);
+      border: 1px solid var(--card-border);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    .leaflet-popup-tip {
+      background: var(--card-bg);
+    }
+    .popup-title {
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--primary);
+      margin-bottom: 6px;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 4px;
+    }
+    .popup-prop {
+      font-size: 12px;
+      margin: 3px 0;
+    }
+    .popup-prop strong {
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="logo-badge">AEREO</div>
+      <div>
+        <h1>Geospatial File Measurement API</h1>
+        <span>Automated Metric Projections & Feature Calculations</span>
+      </div>
+    </div>
+    <div class="nav-links">
+      <a href="/docs" target="_blank">Swagger API Docs</a>
+      <a href="/redoc" target="_blank">ReDoc</a>
+      <a href="/api/health" target="_blank">API Health</a>
+    </div>
+  </header>
+
+  <div class="main-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <!-- File Upload Section -->
+      <div class="sidebar-section">
+        <div class="sidebar-title">1. File Ingestion</div>
+        <div class="drop-zone" id="dropZone">
+          <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+          <p><strong>Click or Drag & Drop</strong></p>
+          <p>.kml or .zip (ESRI Shapefile)</p>
+          <input type="file" id="fileInput" accept=".kml,.zip" style="display: none;">
+        </div>
+
+        <button class="btn" id="uploadBtn" disabled>Process & Calculate</button>
+
+        <div class="sample-buttons">
+          <button class="btn btn-outline" id="loadSampleKmlBtn">Load Sample KML</button>
+          <button class="btn btn-outline" id="loadSampleShpBtn">Load Sample Shapefile</button>
+        </div>
+      </div>
+
+      <!-- File Status Section -->
+      <div class="sidebar-section" id="statusSection" style="display: none;">
+        <div class="sidebar-title">2. Processing Metadata</div>
+        <div style="font-size: 13px; line-height: 1.6;">
+          <p><strong>File ID:</strong> <span id="metaId" style="font-family: monospace; color: var(--primary);">--</span></p>
+          <p><strong>Filename:</strong> <span id="metaName">--</span></p>
+          <p><strong>Detected Native CRS:</strong> <span id="metaCrs" style="color: var(--accent);">--</span></p>
+          <p><strong>Status:</strong> <span id="metaStatus" style="font-weight: 600; color: var(--accent);">--</span></p>
+        </div>
+
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="label">Total Area</div>
+            <div class="value" id="valTotalArea">0 m²</div>
+            <div class="sub" id="valTotalHa">0.00 ha</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">Total Length</div>
+            <div class="value" id="valTotalLength">0 m</div>
+            <div class="sub" id="valTotalKm">0.00 km</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">Polygons</div>
+            <div class="value" id="valPolygons">0</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">Lines / Points</div>
+            <div class="value" id="valLinesPoints">0 / 0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Features List Section -->
+      <div class="sidebar-section" id="featuresSection" style="display: none; flex: 1;">
+        <div class="sidebar-title">3. Extracted Features (<span id="featureCountBadge">0</span>)</div>
+        <div class="feature-list" id="featureListContainer"></div>
+      </div>
+    </aside>
+
+    <!-- Map Viewport -->
+    <div id="map"></div>
+  </div>
+
+  <script>
+    // Initialize Map
+    const map = L.map('map').setView([12.9716, 77.5946], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors | Aereo Geospatial Engine',
+      maxZoom: 19
+    }).addTo(map);
+
+    let geoJsonLayerGroup = L.layerGroup().addTo(map);
+    let currentSelectedFile = null;
+
+    // DOM Elements
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const statusSection = document.getElementById('statusSection');
+    const featuresSection = document.getElementById('featuresSection');
+
+    // Drag and Drop
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      if (e.dataTransfer.files.length > 0) {
+        handleFileSelection(e.dataTransfer.files[0]);
+      }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        handleFileSelection(e.target.files[0]);
+      }
+    });
+
+    function handleFileSelection(file) {
+      currentSelectedFile = file;
+      dropZone.querySelector('p strong').innerText = file.name;
+      uploadBtn.disabled = false;
+      uploadBtn.innerText = `Process "${file.name}"`;
+    }
+
+    uploadBtn.addEventListener('click', async () => {
+      if (!currentSelectedFile) return;
+      await uploadAndProcessFile(currentSelectedFile);
+    });
+
+    // Sample buttons
+    document.getElementById('loadSampleKmlBtn').addEventListener('click', async () => {
+      uploadBtn.disabled = true;
+      uploadBtn.innerText = 'Loading Sample KML...';
+      const resp = await fetch('/samples/sample_survey.kml');
+      const blob = await resp.blob();
+      const file = new File([blob], 'sample_survey.kml', { type: 'application/vnd.google-earth.kml+xml' });
+      await uploadAndProcessFile(file);
+    });
+
+    document.getElementById('loadSampleShpBtn').addEventListener('click', async () => {
+      uploadBtn.disabled = true;
+      uploadBtn.innerText = 'Loading Sample Shapefile...';
+      const resp = await fetch('/samples/sample_shapefile.zip');
+      const blob = await resp.blob();
+      const file = new File([blob], 'sample_shapefile.zip', { type: 'application/zip' });
+      await uploadAndProcessFile(file);
+    });
+
+    async function uploadAndProcessFile(file) {
+      uploadBtn.disabled = true;
+      uploadBtn.innerText = 'Processing Geospatial Data...';
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const uploadRes = await fetch('/api/files/', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!uploadRes.ok) {
+          const err = await uploadRes.json();
+          alert('Upload Error: ' + (err.detail || 'Failed to upload'));
+          uploadBtn.innerText = 'Process File';
+          uploadBtn.disabled = false;
+          return;
+        }
+
+        const uploadData = await uploadRes.json();
+        const fileId = uploadData.id;
+
+        // Fetch measurements
+        const measRes = await fetch(`/api/files/${fileId}/measurements/`);
+        const measData = await measRes.json();
+
+        renderResults(uploadData, measData);
+      } catch (err) {
+        alert('Network or processing error: ' + err.message);
+      } finally {
+        uploadBtn.innerText = 'Process File';
+        uploadBtn.disabled = false;
+      }
+    }
+
+    function renderResults(fileInfo, measurements) {
+      // Show sections
+      statusSection.style.display = 'block';
+      featuresSection.style.display = 'flex';
+
+      // Metadata
+      document.getElementById('metaId').innerText = fileInfo.id;
+      document.getElementById('metaName').innerText = fileInfo.filename;
+      document.getElementById('metaCrs').innerText = fileInfo.crs;
+      document.getElementById('metaStatus').innerText = fileInfo.status;
+
+      // Summary
+      const summary = measurements.summary;
+      document.getElementById('valTotalArea').innerText = summary.total_area_sq_meters.toLocaleString() + ' m²';
+      document.getElementById('valTotalHa').innerText = summary.total_area_hectares.toFixed(4) + ' ha';
+      document.getElementById('valTotalLength').innerText = summary.total_length_meters.toLocaleString() + ' m';
+      document.getElementById('valTotalKm').innerText = summary.total_length_km.toFixed(4) + ' km';
+      document.getElementById('valPolygons').innerText = summary.polygon_count;
+      document.getElementById('valLinesPoints').innerText = `${summary.linestring_count} / ${summary.point_count}`;
+      document.getElementById('featureCountBadge').innerText = measurements.features.length;
+
+      // Clear map
+      geoJsonLayerGroup.clearLayers();
+      const listContainer = document.getElementById('featureListContainer');
+      listContainer.innerHTML = '';
+
+      const bounds = L.latLngBounds([]);
+
+      measurements.features.forEach((feat, idx) => {
+        const geomType = feat.geometry_type.toLowerCase();
+        let color = '#38bdf8';
+        if (geomType.includes('line')) color = '#f59e0b';
+        if (geomType.includes('point')) color = '#10b981';
+
+        // Add to Leaflet Map
+        const layer = L.geoJSON(feat.geometry, {
+          style: {
+            color: color,
+            weight: 3,
+            fillColor: color,
+            fillOpacity: 0.35
+          },
+          pointToLayer: function(geoJsonPoint, latlng) {
+            return L.circleMarker(latlng, {
+              radius: 7,
+              fillColor: color,
+              color: '#ffffff',
+              weight: 2,
+              fillOpacity: 0.9
+            });
+          }
+        });
+
+        // Popup Content
+        let measHtml = '';
+        if (feat.measurements) {
+          if (feat.measurements.area_sq_meters) {
+            measHtml += `<div class="popup-prop"><strong>Area:</strong> ${feat.measurements.area_sq_meters.toLocaleString()} m² (${feat.measurements.area_hectares} ha)</div>`;
+          }
+          if (feat.measurements.length_meters) {
+            measHtml += `<div class="popup-prop"><strong>Length:</strong> ${feat.measurements.length_meters.toLocaleString()} m (${feat.measurements.length_km || '--'} km)</div>`;
+          }
+          if (feat.measurements.note) {
+            measHtml += `<div class="popup-prop" style="color:#94a3b8; font-style: italic;">${feat.measurements.note}</div>`;
+          }
+        }
+
+        let propsHtml = '';
+        if (feat.properties && Object.keys(feat.properties).length > 0) {
+          propsHtml = '<div style="margin-top:6px; border-top:1px solid #334155; padding-top:4px;">';
+          for (const [k, v] of Object.entries(feat.properties)) {
+            propsHtml += `<div class="popup-prop"><strong>${k}:</strong> ${v}</div>`;
+          }
+          propsHtml += '</div>';
+        }
+
+        layer.bindPopup(`
+          <div class="popup-title">Feature #${feat.feature_id} (${feat.geometry_type})</div>
+          <div class="popup-prop"><strong>Projected CRS:</strong> ${feat.projected_crs || 'N/A'}</div>
+          ${measHtml}
+          ${propsHtml}
+        `);
+
+        geoJsonLayerGroup.addLayer(layer);
+        try {
+          bounds.extend(layer.getBounds());
+        } catch(e) {
+          // Point layer getBounds fallback
+          if (layer.getLayers && layer.getLayers()[0] && layer.getLayers()[0].getLatLng) {
+            bounds.extend(layer.getLayers()[0].getLatLng());
+          }
+        }
+
+        // Sidebar Feature Card
+        const card = document.createElement('div');
+        card.className = 'feature-item';
+        card.innerHTML = `
+          <div class="feature-header">
+            <span class="feature-id">#${feat.feature_id}</span>
+            <span class="feature-type ${geomType}">${feat.geometry_type}</span>
+          </div>
+          <div class="feature-measurements">
+            ${feat.measurements && feat.measurements.area_sq_meters ? `Area: <strong>${feat.measurements.area_sq_meters.toLocaleString()} m²</strong>` : ''}
+            ${feat.measurements && feat.measurements.length_meters ? `Length: <strong>${feat.measurements.length_meters.toLocaleString()} m</strong>` : ''}
+            ${feat.status === 'NOT_MEASURED' ? `<span style="color:var(--text-muted);">Point (No measurement required)</span>` : ''}
+          </div>
+        `;
+        card.addEventListener('click', () => {
+          if (layer.getBounds) {
+            map.fitBounds(layer.getBounds(), { padding: [50, 50], maxZoom: 17 });
+          } else if (layer.getLayers && layer.getLayers()[0]) {
+            map.setView(layer.getLayers()[0].getLatLng(), 17);
+          }
+          layer.openPopup();
+        });
+        listContainer.appendChild(card);
+      });
+
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+      }
+    }
+  </script>
+</body>
+</html>
