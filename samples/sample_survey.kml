@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Sample Drone Survey</name>
+    <description>Demonstration survey containing Polygon, LineString, and Point</description>
+    
+    <!-- Polygon: Survey Farm Plot -->
+    <Placemark id="feature_001">
+      <name>Agricultural Field 1</name>
+      <description>Rice cultivation field boundary</description>
+      <ExtendedData>
+        <Data name="crop_type"><value>Paddy</value></Data>
+        <Data name="surveyor"><value>Aereo Drone Team</value></Data>
+      </ExtendedData>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              77.58000,12.96000,0.0
+              77.58500,12.96000,0.0
+              77.58500,12.96500,0.0
+              77.58000,12.96500,0.0
+              77.58000,12.96000,0.0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+
+    <!-- LineString: Drone Flight Path -->
+    <Placemark id="feature_002">
+      <name>Flight Trajectory Alpha</name>
+      <description>Aerial inspection transect line</description>
+      <ExtendedData>
+        <Data name="altitude_agl_m"><value>100</value></Data>
+        <Data name="speed_m_s"><value>12.5</value></Data>
+      </ExtendedData>
+      <LineString>
+        <coordinates>
+          77.58000,12.96000,100.0
+          77.58250,12.96250,100.0
+          77.58500,12.96500,100.0
+        </coordinates>
+      </LineString>
+    </Placemark>
+
+    <!-- Point: Ground Control Point (GCP) -->
+    <Placemark id="feature_003">
+      <name>GCP 01</name>
+      <description>Ground control reference station</description>
+      <ExtendedData>
+        <Data name="accuracy_cm"><value>1.2</value></Data>
+      </ExtendedData>
+      <Point>
+        <coordinates>
+          77.58250,12.96250,910.0
+        </coordinates>
+      </Point>
+    </Placemark>
+
+  </Document>
+</kml>
