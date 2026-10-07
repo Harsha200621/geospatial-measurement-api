@@ -2,8 +2,6 @@
 
 from pathlib import Path
 from typing import Set
-from pydantic import Field
-from pydantic_settings import BaseSettings if False else object  # fallback if pydantic-settings not present
 
 
 class Settings:

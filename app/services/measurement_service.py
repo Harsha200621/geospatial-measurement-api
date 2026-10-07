@@ -55,31 +55,48 @@ class MeasurementService:
             geom = feature.geometry
             geom_type = feature.geometry_type
 
-            # Transform geometry to projected CRS for accurate metric calculations
-            try:
-                target_crs_obj, projected_crs_str = CRSService.determine_projected_crs(geom, source_crs_obj)
-                projected_geom = CRSService.transform_geometry(geom, source_crs_obj, target_crs_obj)
-            except Exception as proj_err:
-                logger.error("Failed to reproject feature %s: %s", feature.feature_id, proj_err)
-                projected_geom = None
-                projected_crs_str = None
-
-            # Calculate measurements based on geometry type
-            measurement_val, status = cls._calculate_feature_measurement(geom_type, projected_geom)
-
-            # Update aggregation counters
-            if geom_type in cls.POLYGON_TYPES:
-                polygon_cnt += 1
-                if measurement_val and measurement_val.area_sq_meters is not None:
-                    total_area_sq_m += measurement_val.area_sq_meters
-            elif geom_type in cls.LINESTRING_TYPES:
-                linestring_cnt += 1
-                if measurement_val and measurement_val.length_meters is not None:
-                    total_length_m += measurement_val.length_meters
-            elif geom_type in cls.POINT_TYPES:
-                point_cnt += 1
-            else:
+            # Check if geometry type is unsupported for measurement calculation
+            if geom_type not in cls.POLYGON_TYPES and geom_type not in cls.LINESTRING_TYPES and geom_type not in cls.POINT_TYPES:
                 unsupported_cnt += 1
+                measurement_val = MeasurementValue(
+                    note=f"Geometry type '{geom_type}' is not supported for measurement calculation."
+                )
+                status = "UNSUPPORTED"
+                projected_crs_str = None
+            elif geom is None or geom.is_empty:
+                measurement_val = MeasurementValue(note="Geometry is empty.")
+                status = "EMPTY"
+                projected_crs_str = None
+                if geom_type in cls.POLYGON_TYPES:
+                    polygon_cnt += 1
+                elif geom_type in cls.LINESTRING_TYPES:
+                    linestring_cnt += 1
+                elif geom_type in cls.POINT_TYPES:
+                    point_cnt += 1
+            else:
+                # Transform geometry to projected CRS for accurate metric calculations
+                try:
+                    target_crs_obj, projected_crs_str = CRSService.determine_projected_crs(geom, source_crs_obj)
+                    projected_geom = CRSService.transform_geometry(geom, source_crs_obj, target_crs_obj)
+                except Exception as proj_err:
+                    logger.error("Failed to reproject feature %s: %s", feature.feature_id, proj_err)
+                    projected_geom = None
+                    projected_crs_str = None
+
+                # Calculate measurements based on geometry type
+                measurement_val, status = cls._calculate_feature_measurement(geom_type, projected_geom)
+
+                # Update aggregation counters
+                if geom_type in cls.POLYGON_TYPES:
+                    polygon_cnt += 1
+                    if measurement_val and measurement_val.area_sq_meters is not None:
+                        total_area_sq_m += measurement_val.area_sq_meters
+                elif geom_type in cls.LINESTRING_TYPES:
+                    linestring_cnt += 1
+                    if measurement_val and measurement_val.length_meters is not None:
+                        total_length_m += measurement_val.length_meters
+                elif geom_type in cls.POINT_TYPES:
+                    point_cnt += 1
 
             # Convert Shapely geometry to standard GeoJSON dictionary
             try:
