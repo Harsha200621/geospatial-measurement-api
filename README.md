@@ -1,121 +1,72 @@
 # Geospatial File Measurement API
 
-A FastAPI backend service that takes geospatial files (`.zip` Shapefiles and `.kml` files), extracts geographic features, reprojects coordinates to an appropriate local metric system, and calculates accurate measurements like area and length.
-
-Built with Python 3.10, FastAPI, Shapely, and Pyproj.
+A FastAPI backend service that accepts geospatial files (Shapefile `.zip` or `.kml`), processes the features, and calculates geometric measurements like area and length.
 
 ---
 
-## What this project does
+## 1. Setup
 
-When working with geospatial data, files often store coordinates in latitude and longitude degrees (such as `EPSG:4326` / WGS 84). Calculating area or distance directly on degrees doesn't give real physical units because the Earth is curved and degrees get smaller as you move away from the equator.
-
-This API handles that automatically:
-1. Accepts an uploaded `.zip` containing a Shapefile or a `.kml` file.
-2. Reads the features, geometry types, and attributes.
-3. Automatically finds the right local **UTM (Universal Transverse Mercator) zone** based on where the feature is located on Earth.
-4. Reprojects the coordinates into meters.
-5. Calculates real-world measurements:
-   - **Polygons**: Area (in $m^2$, hectares, and $km^2$) + perimeter.
-   - **LineStrings**: Length (in meters and kilometers).
-   - **Points**: Handled gracefully without errors (no measurement needed).
-6. Provides an interactive Leaflet map dashboard to visually inspect the uploaded files and measurements.
-
----
-
-## Quick Start / Setup
-
-### Prerequisites
+### Requirements
 - Python 3.10+
 - Git
 
-### 1. Clone and navigate to the project
+### Run Locally
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/Harsha200621/geospatial-measurement-api.git
+   cd geospatial-measurement-api
+   ```
+
+2. **Create and activate a virtual environment:**
+   - **Windows:**
+     ```powershell
+     python -m venv .venv
+     .\.venv\Scripts\Activate.ps1
+     ```
+   - **Linux / Mac:**
+     ```bash
+     python3 -m venv .venv
+     source .venv/bin/activate
+     ```
+
+3. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Start the application:**
+   ```bash
+   uvicorn app.main:app --reload
+   ```
+
+- **Interactive API Docs (Swagger):** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+- **Interactive Map UI:** [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
+
+### Run Tests
 ```bash
-git clone https://github.com/Harsha200621/geospatial-measurement-api.git
-cd geospatial-measurement-api
-```
-
-### 2. Set up virtual environment
-On Windows (PowerShell):
-```powershell
-python -m venv .venv
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
-.\.venv\Scripts\Activate.ps1
-```
-
-On macOS / Linux:
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-### 3. Install dependencies
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Run the server
-```bash
-uvicorn app.main:app --reload
-```
-
-Once running, you can open:
-- **Interactive Map Dashboard**: [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
-- **Swagger API Docs**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-
----
-
-## How to Test
-
-Run the automated test suite:
-```bash
-pytest -v
-```
-All 22 unit and integration tests run in under a second.
-
-You can also run the quick end-to-end verification script:
-```bash
-python scripts/verify_e2e.py
+pytest
 ```
 
 ---
 
-## API Endpoints
+## 2. API Documentation
 
-### 1. Upload File
-`POST /api/files/`
+### Upload File
+- **Endpoint:** `POST /api/files/`
+- **Content-Type:** `multipart/form-data`
+- **Body:** `file` (.kml or .zip Shapefile)
 
-Uploads and processes a `.zip` (Shapefile) or `.kml` file.
-
-**curl example:**
+**Example Request:**
 ```bash
 curl -X POST "http://127.0.0.1:8000/api/files/" -F "file=@samples/sample_survey.kml"
 ```
 
-**Response (201 Created):**
+**Example Response:**
 ```json
 {
-  "id": "f32b96d87a7b",
-  "filename": "sample_survey.kml",
-  "feature_count": 3,
-  "crs": "EPSG:4326",
-  "status": "COMPLETED",
-  "file_type": "KML"
-}
-```
-
----
-
-### 2. Get File Information
-`GET /api/files/{id}/`
-
-Returns basic information and status for an uploaded file.
-
-**Response (200 OK):**
-```json
-{
-  "id": "f32b96d87a7b",
-  "filename": "sample_survey.kml",
+  "id": "abc123456789",
+  "filename": "survey.kml",
   "feature_count": 3,
   "crs": "EPSG:4326",
   "status": "COMPLETED"
@@ -124,16 +75,40 @@ Returns basic information and status for an uploaded file.
 
 ---
 
-### 3. Get Measurements
-`GET /api/files/{id}/measurements/`
+### File Information
+- **Endpoint:** `GET /api/files/{id}/`
 
-Returns detailed measurements for every feature in the file, along with an overall summary and GeoJSON geometry.
+**Example Request:**
+```bash
+curl -X GET "http://127.0.0.1:8000/api/files/abc123456789/"
+```
 
-**Response (200 OK):**
+**Example Response:**
 ```json
 {
-  "id": "f32b96d87a7b",
-  "filename": "sample_survey.kml",
+  "id": "abc123456789",
+  "filename": "survey.kml",
+  "feature_count": 3,
+  "crs": "EPSG:4326",
+  "status": "COMPLETED"
+}
+```
+
+---
+
+### Measurements
+- **Endpoint:** `GET /api/files/{id}/measurements/`
+
+**Example Request:**
+```bash
+curl -X GET "http://127.0.0.1:8000/api/files/abc123456789/measurements/"
+```
+
+**Example Response:**
+```json
+{
+  "id": "abc123456789",
+  "filename": "survey.kml",
   "feature_count": 3,
   "crs": "EPSG:4326",
   "summary": {
@@ -153,8 +128,7 @@ Returns detailed measurements for every feature in the file, along with an overa
       "crs": "EPSG:4326",
       "projected_crs": "EPSG:32643",
       "properties": {
-        "name": "Agricultural Field 1",
-        "crop_type": "Paddy"
+        "name": "Field A"
       },
       "measurements": {
         "area_sq_meters": 300430.08,
@@ -167,6 +141,23 @@ Returns detailed measurements for every feature in the file, along with an overa
         "coordinates": [...]
       },
       "status": "PROCESSED"
+    },
+    {
+      "feature_id": "feature_002",
+      "geometry_type": "Point",
+      "crs": "EPSG:4326",
+      "projected_crs": null,
+      "properties": {},
+      "measurements": {
+        "area_sq_meters": null,
+        "length_meters": null,
+        "note": "No measurement required for Point geometry."
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [77.58, 12.96]
+      },
+      "status": "NOT_MEASURED"
     }
   ]
 }
@@ -174,95 +165,75 @@ Returns detailed measurements for every feature in the file, along with an overa
 
 ---
 
-## Project Structure
+## 3. Architecture
 
+### Application Structure
 ```text
 Aereo/
 ├── app/
-│   ├── main.py                     # FastAPI app, lifespan, CORS, and routes
-│   ├── config.py                   # App settings (upload directory, size limits)
-│   ├── api/v1/
-│   │   ├── router.py               # Route aggregation
-│   │   └── endpoints.py            # Upload, info, and measurement routes
-│   ├── schemas/
-│   │   ├── file.py                 # Pydantic schemas for file responses
-│   │   └── measurement.py          # Pydantic schemas for measurements & summary
+│   ├── main.py                     # FastAPI entry point & routes
+│   ├── config.py                   # App settings (file limits, paths)
+│   ├── api/v1/endpoints.py         # API endpoints (upload, info, measurements)
+│   ├── schemas/                    # Pydantic models (file & measurement schemas)
 │   ├── services/
-│   │   ├── storage.py              # In-memory repository with JSON file persistence
-│   │   ├── crs_service.py          # Automatic UTM projection and coordinate transform
-│   │   ├── measurement_service.py  # Area/length calculations and aggregation
+│   │   ├── crs_service.py          # CRS projection & UTM calculation
+│   │   ├── measurement_service.py  # Area & length calculations
+│   │   ├── storage.py              # In-memory and file-backed repository
 │   │   └── parsers/
-│   │       ├── base.py             # Base parser interface
-│   │       ├── shapefile_parser.py # Reads .zip shapefiles safely
-│   │       └── kml_parser.py       # Reads KML Placemarks (Polygon, Line, Point)
-│   └── static/
-│       └── index.html              # Interactive Leaflet map dashboard
-├── samples/                        # Sample KML and Shapefile .zip for testing
-├── scripts/
-│   ├── generate_samples.py         # Generates test files
-│   └── verify_e2e.py               # Quick end-to-end test script
-├── tests/                          # Automated pytest suite (22 tests)
+│   │       ├── shapefile_parser.py # Reads .zip shapefiles
+│   │       └── kml_parser.py       # Reads .kml XML files
+│   └── static/index.html           # Leaflet map UI
+├── samples/                        # Sample KML and Shapefile .zip
+├── tests/                          # 22 automated unit and integration tests
 ├── requirements.txt
 └── README.md
 ```
 
----
+### File-Processing Flow
+1. Client uploads `.zip` or `.kml` via `POST /api/files/`.
+2. Extension and size are validated.
+3. The file is parsed:
+   - For `.zip`: Safely extracts files and uses PyShp to read `.shp`, `.dbf`, and `.prj`.
+   - For `.kml`: Uses XML ElementTree to extract Placemarks and coordinates.
+4. Features, attributes, and geometries are loaded into standard objects.
 
-## Architecture & How It Works
+### Measurement Calculation Flow
+1. For each feature, check its geometry type:
+   - **Polygon / MultiPolygon:** Compute area ($m^2$, hectares) and perimeter length ($m$).
+   - **LineString / MultiLineString:** Compute length ($m$, $km$).
+   - **Point / MultiPoint:** Mark as `NOT_MEASURED` (no calculation needed).
+   - **Other / Invalid:** Handled gracefully and marked as `UNSUPPORTED` without crashing.
+2. An overall summary is computed aggregating total area, length, and feature counts.
 
-### 1. File Upload & Ingestion
-When a file is uploaded:
-- The file extension is checked (`.zip` or `.kml`).
-- The file is streamed to a temporary directory on disk (with size checks to avoid memory exhaustion).
-- If it's a `.zip`, we safely extract its contents with path validation to protect against **Zip Slip** directory traversal attacks.
-- We locate the primary `.shp` and check for an accompanying `.prj` file to read the coordinate system.
-
-### 2. CRS Handling Strategy
-Why not calculate directly?
-- If coordinates are in degrees (like `EPSG:4326`), 1 degree at the equator is ~111 km, but near 60° latitude it's only ~55 km. Direct degree calculations produce inaccurate distorted numbers.
-
-Our approach:
-- We calculate the centroid (center point) of each geometry.
-- We determine which **Universal Transverse Mercator (UTM)** zone it falls into using its longitude:
-  `zone = int((longitude + 180) / 6) + 1`
-- If latitude is in the northern hemisphere, we use `EPSG:32600 + zone` (e.g., Bangalore at 77.58°E, 12.96°N falls in Zone 43N -> `EPSG:32643`).
-- If latitude is in the southern hemisphere, we use `EPSG:32700 + zone`.
-- We reproject using `pyproj` with `always_xy=True` so that longitude and latitude never get swapped by mistake.
-- If a file is already in a projected metric coordinate system, we keep the original projection.
-
-### 3. Measurement Calculation
-Once geometries are in meters:
-- **Polygons**: `projected_geom.area` gives area in square meters. We also compute hectares ($m^2 / 10000$) and square kilometers.
-- **LineStrings**: `projected_geom.length` gives length in meters and kilometers.
-- **Points**: Have zero area and length, so they are marked as `NOT_MEASURED` with a helpful note.
-- **Unsupported Geometries**: Logged and marked `UNSUPPORTED` without crashing the service.
+### CRS Handling
+- Most input files use geographic coordinates (latitude and longitude in degrees, like `EPSG:4326`).
+- Calculating area or length directly on degrees is inaccurate because degree lengths vary depending on latitude.
+- **Strategy:** We compute the centroid (center) of the geometry and automatically select its local **Universal Transverse Mercator (UTM)** zone:
+  $$\text{UTM Zone} = \text{int}((\text{lon} + 180) / 6) + 1$$
+- For the northern hemisphere: `EPSG:32600 + zone`.
+- For the southern hemisphere: `EPSG:32700 + zone`.
+- We reproject using `pyproj` with `always_xy=True` (to guarantee longitude/latitude order) before measuring.
+- If the file is already in a metric projected CRS, that CRS is kept.
 
 ---
 
-## Technical Design Decisions
+## 4. Design Decisions
 
-1. **FastAPI over Django REST Framework**:
-   FastAPI was chosen because it is lightweight, runs asynchronously, provides automatic interactive documentation (`/docs`), and handles request validation cleanly via Pydantic v2.
-2. **PyShp (`shapefile`) instead of GDAL/Fiona**:
-   GDAL and Fiona require heavy C/C++ system libraries that frequently cause complex installation and build issues on developer machines (especially on Windows). `pyshp` is pure Python, reliable, and easily handles standard Shapefile extraction.
-3. **Dynamic Centroid UTM instead of Web Mercator**:
-   Web Mercator (`EPSG:3857`) has major scale distortion that exaggerates area significantly as you move away from the equator. Local UTM zones keep scale distortion below 0.1%, making it ideal for aerial and drone survey measurements.
-4. **Interactive Leaflet UI Dashboard**:
-   Although only a backend API was required, adding a simple single-page Leaflet dashboard lets anyone quickly test the API with real files visually without needing Postman or terminal commands.
+- **FastAPI over Django:** FastAPI is lightweight, fast, has native async support, and automatically generates interactive Swagger documentation.
+- **PyShp over GDAL/Fiona:** GDAL requires complex C/C++ system libraries that are difficult to install across different operating systems (especially Windows). `pyshp` is pure Python, reliable, and has zero external C dependencies.
+- **Dynamic UTM over Web Mercator:** Web Mercator (`EPSG:3857`) heavily distorts areas away from the equator. Local UTM zones keep distortion under 0.1%, giving accurate real-world measurements.
+- **Zip-Slip Protection:** When extracting uploaded `.zip` archives, paths are strictly validated to prevent directory traversal attacks.
 
 ---
 
-## What I Learned
+## 5. Learnings & Future Improvements
 
-- **Coordinate Axis Order Pitfall**: In PROJ 6+, geographic CRS definitions standardise on `(latitude, longitude)`, while GeoJSON and Shapely expect `(x, y)` which is `(longitude, latitude)`. Using `always_xy=True` in `pyproj.Transformer` was necessary to avoid accidentally swapping coordinates.
-- **KML Namespace Variations**: Different GIS software (Google Earth, QGIS) export KML with slightly different XML namespaces. Writing a namespace-agnostic tag finder made the parser much more resilient.
-- **ESRI Shapefile Ring Order**: In shapefiles, outer polygon rings must be ordered clockwise, while inner holes are counter-clockwise. Ensuring correct orientation prevents geometries from being misinterpreted as holes.
+### Learnings
+- **Coordinate Order:** `pyproj` requires `always_xy=True` to ensure coordinate order stays as `(x, y)` / `(lon, lat)` and avoids inadvertent coordinate flipping.
+- **KML Namespaces:** KML files often use different XML namespaces depending on the exporting software (Google Earth, QGIS). Writing namespace-tolerant parsing ensures high compatibility.
+- **Shapefile Ring Orientation:** ESRI Shapefiles require exterior rings to be clockwise and inner rings to be counter-clockwise. Following this rule ensures polygons don't get treated as holes.
 
----
-
-## Future Improvements
-
-- **Async Task Queue**: For huge files with hundreds of thousands of vertices, offload parsing to Celery / Redis background workers so the API remains immediately responsive.
-- **Database Persistence**: Add PostgreSQL with PostGIS for spatial indexing ($R$-tree) and spatial queries (bounding box filters, polygon intersections).
-- **GeoJSON Export**: Add a download endpoint (`GET /api/files/{id}/export?format=geojson`) to export the measured features directly into desktop GIS tools like QGIS.
-- **Cloud Storage**: Store uploaded files in Amazon S3 or Google Cloud Storage instead of the local filesystem for cloud deployment.
+### Future Improvements
+- **Background Task Queue:** Use Celery or Redis for very large files with hundreds of thousands of vertices.
+- **Spatial Database:** Use PostGIS for storing features with spatial indexing ($R$-tree) and bounding box queries.
+- **GeoJSON Export:** Add an endpoint to export processed measurements directly as a downloadable GeoJSON file for QGIS.
