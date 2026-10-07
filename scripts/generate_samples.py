@@ -102,26 +102,26 @@ def create_sample_shapefile_zip():
         w.field("ZONE", "C", size=20)
         w.field("SURVEY_ID", "N", size=10)
 
-        # Feature 1: Polygon
+        # Feature 1: Polygon (Clockwise order for ESRI Shapefile exterior ring)
         poly1_coords = [
             [
                 [77.5900, 12.9700],
-                [77.5950, 12.9700],
-                [77.5950, 12.9750],
                 [77.5900, 12.9750],
+                [77.5950, 12.9750],
+                [77.5950, 12.9700],
                 [77.5900, 12.9700],
             ]
         ]
         w.poly(poly1_coords)
         w.record(PLOT_NAME="Commercial Zone A", ZONE="Urban", SURVEY_ID=101)
 
-        # Feature 2: Polygon
+        # Feature 2: Polygon (Clockwise order for ESRI Shapefile exterior ring)
         poly2_coords = [
             [
                 [77.5960, 12.9700],
-                [77.6000, 12.9700],
-                [77.6000, 12.9740],
                 [77.5960, 12.9740],
+                [77.6000, 12.9740],
+                [77.6000, 12.9700],
                 [77.5960, 12.9700],
             ]
         ]
